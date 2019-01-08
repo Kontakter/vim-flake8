@@ -24,6 +24,44 @@ endfunction
 
 "" ** internal ** {{{
 
+let b:showing_message = 0
+
+function s:WideMsg(msg)
+    let x=&ruler | let y=&showcmd
+    set noruler noshowcmd
+    redraw
+    echo strpart(a:msg, 0, &columns-1)
+    let &ruler=x | let &showcmd=y
+endfun
+
+function s:GetFlake8Message()
+    let s:cursorPos = getpos(".")
+
+    " Bail if RunPyflakes hasn't been called yet.
+    if !exists('s:markerdata')
+        return
+    endif
+
+    " if there's a message for the line the cursor is currently on, echo
+    " it to the console
+    if has_key(b:resultIndex, s:cursorPos[1])
+        let s:result = get(b:resultIndex, s:cursorPos[1])
+        call s:WideMsg(s:result.text)
+        let b:showing_message = 1
+        return
+    endif
+
+    " otherwise, if we're showing a message, clear it
+    if b:showing_message == 1
+        echo
+        let b:showing_message = 0
+    endif
+endfunction
+
+au CursorHold <buffer> call s:GetFlake8Message()
+au CursorMoved <buffer> call s:GetFlake8Message()
+
+
 "" warnings 
 
 let s:displayed_warnings = 0
@@ -200,11 +238,13 @@ function! s:PlaceMarkers(results)  " {{{
     " place
     let l:index0 = 100
     let l:index  = l:index0
+    let b:resultIndex = {}
     for result in a:results
         if l:index >= (s:flake8_max_markers+l:index0)
             break
         endif
         let l:type = strpart(result.text, 0, 1)
+        let b:resultIndex[result.lnum] = result
         if has_key(s:markerdata, l:type) && s:markerdata[l:type].marker != ''
             " file markers
             if !s:flake8_show_in_file == 0
