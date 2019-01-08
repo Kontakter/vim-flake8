@@ -38,7 +38,7 @@ function s:GetFlake8Message()
     let s:cursorPos = getpos(".")
 
     " Bail if RunPyflakes hasn't been called yet.
-    if !exists('s:markerdata')
+    if !exists('b:resultIndex')
         return
     endif
 
@@ -181,10 +181,12 @@ function! s:Flake8()  " {{{
     " perform the grep itself
     let &grepformat="%f:%l:%c: %m\,%f:%l: %m"
     let &grepprg=s:flake8_cmd
-    silent! grep! "%"
+    silent! lgrep! "%"
     " close any existing cwindows,
     " placed after 'grep' in case quickfix is open on autocmd QuickFixCmdPost
-    cclose
+    if !s:flake8_show_quickfix == 0
+        lclose
+    endif
 
     " restore grep settings
     let &grepformat=l:old_gfm
@@ -194,7 +196,8 @@ function! s:Flake8()  " {{{
     let &t_te=l:old_t_te
 
     " process results
-    let l:results=getqflist()
+    let l:results=getloclist(0)
+    let b:resultIndex = {}
     let l:has_results=results != []
     if l:has_results
         " markers
@@ -204,10 +207,10 @@ function! s:Flake8()  " {{{
         " quickfix
         if !s:flake8_show_quickfix == 0
             " open cwindow
-            execute s:flake8_quickfix_location." copen".s:flake8_quickfix_height
+            execute s:flake8_quickfix_location." lopen".s:flake8_quickfix_height
             setlocal wrap
-            nnoremap <buffer> <silent> c :cclose<CR>
-            nnoremap <buffer> <silent> q :cclose<CR>
+            nnoremap <buffer> <silent> c :lclose<CR>
+            nnoremap <buffer> <silent> q :lclose<CR>
         endif
     endif
 
@@ -238,7 +241,6 @@ function! s:PlaceMarkers(results)  " {{{
     " place
     let l:index0 = 100
     let l:index  = l:index0
-    let b:resultIndex = {}
     for result in a:results
         if l:index >= (s:flake8_max_markers+l:index0)
             break
