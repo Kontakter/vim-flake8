@@ -44,7 +44,7 @@ function s:GetFlake8Message()
 
     " if there's a message for the line the cursor is currently on, echo
     " it to the console
-    if has_key(b:resultIndex, s:cursorPos[1])
+    if exists('b:resultIndex') && has_key(b:resultIndex, s:cursorPos[1])
         let s:result = get(b:resultIndex, s:cursorPos[1])
         call s:WideMsg(s:result.text)
         let b:showing_message = 1
